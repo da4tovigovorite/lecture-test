@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Scroll Journey</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0a0a0a;
+            font-family: 'Instrument Serif', serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden; /* Prevent body from scrolling, only the mobile frame scrolls */
+        }
+
+        /* The Virtual Mobile Frame */
+        #mobile-viewport {
+            width: 100%;
+            max-width: 430px;
+            height: 100vh;
+            position: relative;
+            background: #000;
+            overflow-y: auto;
+            overflow-x: hidden;
+            border-left: 1px solid #222;
+            border-right: 1px solid #222;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            scrollbar-width: none; /* Firefox */
+        }
+
+        #mobile-viewport::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+
+        /* Scrolling space provider */
+        .scroll-content {
+            height: 600vh; /* Long enough for 6 seconds of scrubbing */
+            position: relative;
+        }
+
+        /* Fixed Video Container within the frame */
+        .video-wrapper {
+            position: sticky;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* Applying luminosity blend from the specs */
+            mix-blend-mode: luminosity;
+            filter: brightness(0.8) contrast(1.1);
+        }
+
+        /* Special Effects */
+        .liquid-glass {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px) saturate(160%);
+            -webkit-backdrop-filter: blur(15px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 14px 32px;
+            border-radius: 100px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .text-shadow {
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+        }
+
+        /* Overlay to keep text readable */
+        .vignette {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.4) 100%);
+            z-index: 5;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Virtual Mobile Frame -->
+    <div id="mobile-viewport">
+        
+        <!-- Fixed Background Elements -->
+        <div class="video-wrapper">
+            <div class="vignette"></div>
+            <video 
+                id="scrollVideo" 
+                playsinline 
+                muted 
+                preload="auto" 
+                class="absolute inset-0">
+                <source src="https://res.cloudinary.com/dcbvfik8m/video/upload/v1777796888/test_bgibi2.mp4" type="video/mp4">
+            </video>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="scroll-content">
+            
+            <!-- Phase 1: Bottom Right (0-2s) -->
+            <div id="p1" class="fixed inset-0 flex items-end justify-end p-10 opacity-0 pointer-events-none z-10">
+                <h2 class="text-3xl text-white text-right tracking-tighter text-shadow leading-none">
+                    First Chapter:<br><span class="italic font-light opacity-80">The Descent</span>
+                </h2>
+            </div>
+
+            <!-- Phase 2: Center Left (2-4s) -->
+            <div id="p2" class="fixed inset-0 flex items-center justify-start p-10 opacity-0 pointer-events-none z-10">
+                <h2 class="text-3xl text-white text-left w-[80%] tracking-tighter text-shadow leading-none">
+                    Second Chapter:<br><span class="italic font-light opacity-80">The Inner Mirror</span>
+                </h2>
+            </div>
+
+            <!-- Phase 3: Top Left (4-6s) -->
+            <div id="p3" class="fixed inset-0 flex items-start justify-start p-10 pt-20 opacity-0 pointer-events-none z-10">
+                <h2 class="text-3xl text-white text-left tracking-tighter text-shadow leading-none">
+                    Final Chapter:<br><span class="italic font-light opacity-80">The Resolution</span>
+                </h2>
+            </div>
+
+            <!-- Final CTA (Visible at bottom) -->
+            <div class="absolute bottom-20 left-0 w-full flex justify-center z-20">
+                <button class="liquid-glass uppercase tracking-widest text-xs font-bold active:scale-95">
+                    Begin Journey
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+
+        const video = document.getElementById("scrollVideo");
+        const container = document.getElementById("mobile-viewport");
+        const videoDuration = 6; // Specs: 6s video
+
+        // Ensure video is ready
+        video.addEventListener('loadedmetadata', initScrollEffects);
+        // Fallback for cached video
+        if (video.readyState >= 2) initScrollEffects();
+
+        function initScrollEffects() {
+            // 1. Map Scroll Position to Video Time
+            gsap.to(video, {
+                currentTime: videoDuration,
+                ease: "none",
+                scrollTrigger: {
+                    trigger: ".scroll-content",
+                    start: "top top",
+                    end: "bottom bottom",
+                    scroller: "#mobile-viewport",
+                    scrub: 0.1 // Small delay for buttery feel
+                }
+            });
+
+            // 2. Text Phase Animation Timeline
+            const tl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: ".scroll-content",
+                    start: "top top",
+                    end: "bottom bottom",
+                    scroller: "#mobile-viewport",
+                    scrub: true
+                }
+            });
+
+            // Phase 1 (0s to 2s marks approx 0% to 33% scroll)
+            tl.to("#p1", { opacity: 1, duration: 0.1 })
+              .to("#p1", { opacity: 0, duration: 0.1 }, 0.3)
+              
+            // Phase 2 (2s to 4s marks approx 33% to 66% scroll)
+              .to("#p2", { opacity: 1, duration: 0.1 }, 0.35)
+              .to("#p2", { opacity: 0, duration: 0.1 }, 0.6)
+              
+            // Phase 3 (4s to 6s marks approx 66% to 100% scroll)
+              .to("#p3", { opacity: 1, duration: 0.1 }, 0.65)
+              .to("#p3", { opacity: 0, duration: 0.1 }, 0.95);
+        }
+
+        // Smooth handling for mobile touch/momentum
+        // The container #mobile-viewport handles its own scroll events
+    </script>
+</body>
+</html>
